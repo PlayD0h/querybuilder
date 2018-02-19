@@ -41,6 +41,59 @@ namespace SqlKata
         }
     }
 
+    public enum FallbackType
+    {
+        Query,
+        Column,
+        Value
+    }
+
+    public class CoalesceFallback
+    {
+        public FallbackType Type { get;set; }
+        public object Value { get;set; }
+
+        public CoalesceFallback(object value, FallbackType type)
+        {
+            Value = value;
+            Type = type;
+        }
+
+        public CoalesceFallback(Query query)
+        {
+            Value = query;
+            Type = FallbackType.Query;
+        }
+
+        public CoalesceFallback(Func<Query, Query> callback)
+        {
+            Value = callback.Invoke(new Query());
+            Type = FallbackType.Query;
+        }
+    }
+
+    public class CoalesceColumn : AbstractColumn
+    {
+        public Query Query { get; set; }
+        public List<CoalesceFallback> Fallbacks { get; set; }
+
+        public override object[] GetBindings(string engine)
+        {
+            return Query.GetBindings(engine).ToArray();
+        }
+
+        public override AbstractClause Clone()
+        {
+            return new CoalesceColumn
+            {
+                Engine = Engine,
+                Query = Query.Clone(),
+                Component = Component,
+                Fallbacks = Fallbacks
+            };
+        }
+    }
+
     public class RawColumn : AbstractColumn, RawInterface
     {
         public string Expression { get; set; }
